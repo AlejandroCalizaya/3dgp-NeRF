@@ -1,0 +1,38 @@
+.env/python.exe nerf/train.py --data data/lego --out data/lego/nerf.pt --iters 3000
+25 imágenes de entrenamiento, 4 de validación, 400x400, focal 555.6
+dataset con alfa: entrenando con fondo aleatorio
+it      0  loss 0.04896  psnr 13.10  ocupación 100.0%  0s
+it    100  loss 0.01600  psnr 17.96  ocupación 100.0%  18s
+it    200  loss 0.00714  psnr 21.46  ocupación 100.0%  35s
+it    300  loss 0.00433  psnr 23.64  ocupación 100.0%  52s
+it    400  loss 0.00380  psnr 24.20  ocupación 100.0%  69s
+it    500  loss 0.00290  psnr 25.37  ocupación 100.0%  86s
+it    600  loss 0.00264  psnr 25.78  ocupación 100.0%  103s
+it    700  loss 0.00267  psnr 25.74  ocupación 100.0%  120s
+it    800  loss 0.00215  psnr 26.68  ocupación 100.0%  137s
+it    900  loss 0.00213  psnr 26.72  ocupación 100.0%  154s
+it   1000  loss 0.00205  psnr 26.88  ocupación 100.0%  172s
+   >> PSNR validación: 22.95 dB
+it   1100  loss 0.00177  psnr 27.52  ocupación 22.6%  184s
+it   1200  loss 0.00176  psnr 27.54  ocupación 20.7%  189s
+it   1300  loss 0.00161  psnr 27.94  ocupación 21.1%  194s
+it   1400  loss 0.00149  psnr 28.26  ocupación 18.8%  199s
+it   1500  loss 0.00132  psnr 28.80  ocupación 24.0%  204s
+it   1600  loss 0.00148  psnr 28.31  ocupación 22.6%  209s
+it   1700  loss 0.00161  psnr 27.94  ocupación 24.5%  214s
+it   1800  loss 0.00137  psnr 28.64  ocupación 23.0%  219s
+it   1900  loss 0.00136  psnr 28.67  ocupación 24.2%  224s
+it   2000  loss 0.00123  psnr 29.11  ocupación 23.4%  228s
+   >> PSNR validación: 23.61 dB
+it   2100  loss 0.00132  psnr 28.79  ocupación 21.3%  235s
+it   2200  loss 0.00133  psnr 28.77  ocupación 21.3%  239s
+it   2300  loss 0.00119  psnr 29.24  ocupación 22.1%  244s
+it   2400  loss 0.00112  psnr 29.52  ocupación 22.1%  249s
+it   2500  loss 0.00102  psnr 29.91  ocupación 21.7%  254s
+it   2600  loss 0.00121  psnr 29.18  ocupación 21.7%  259s
+it   2700  loss 0.00115  psnr 29.39  ocupación 23.0%  264s
+it   2800  loss 0.00116  psnr 29.35  ocupación 21.5%  269s
+it   2900  loss 0.00123  psnr 29.11  ocupación 21.5%  274s
+it   3000  loss 0.00097  psnr 30.12  ocupación 21.2%  278s
+   >> PSNR validación: 23.59 dB
+listo -> data/lego/nerf.pt

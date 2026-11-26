@@ -2,7 +2,15 @@
 *.xlaunch
 __pycache__/
 .env/
-data/
+# data/: keep the training inputs (images + transforms.json) so anyone can train from scratch;
+# ignore heavy or regenerable files
+data/*/nerf.pt
+data/*/nerf.pt.tmp
+data/*/database.db
+data/*/frames_full/
+data/*/sparse/
+data/lego_raw/
+data/lego_10k/
 imgui.ini
 
 # third-party libraries: clone them as described in README.md
