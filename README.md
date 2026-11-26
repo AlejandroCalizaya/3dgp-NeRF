@@ -1,1 +1,122 @@
 # 3dgp-NeRF
+
+A NeRF (hash grid, pure PyTorch) trained from a video, plus an OpenGL viewer (C++ / ImGui) that requests frames from a Python server running on the GPU.
+
+```
+video ──► prepare (COLMAP) ──► train ──► data/<scene>/nerf.pt ──► make server  ◄──TCP──►  make run (OpenGL viewer in Docker)
+```
+
+## 1. Repositories to clone
+
+These libraries are not included in this repo. Clone them into the project root, using these folder names (same links as the 3D Graphics course README):
+
+```bash
+git clone https://github.com/Dav1dde/glad.git      # GLAD 1 (master branch): the Dockerfile installs it with pip and generates the OpenGL 3.3 core loader
+git clone https://github.com/nothings/stb.git      # STB
+git clone https://github.com/ocornut/imgui.git     # Dear ImGui: imgui/ and imgui/backends/ are used (the course ships it, but its README gives no link)
+```
+
+- **glad** must be GLAD **1** (the `master` branch of the link above). The Dockerfile command (`glad --profile core --api gl=3.3 --generator c`) belongs to GLAD 1.
+- **imgui**: tested with version 1.93 (`master`).
+- **stb** is not used by this project today, but the course clones it; it is optional.
+
+## 2. Requirements
+
+| For | What you need |
+|---|---|
+| Training and server (Windows, NVIDIA GPU) | Python 3.11, PyTorch with CUDA, `opencv-python`, `numpy`, `pycolmap`, and `ffmpeg` on the PATH |
+| OpenGL viewer | Docker and an X server on Windows (for example VcXsrv; open `config.xlaunch`) |
+
+Python environment (the Makefile expects `.env/python.exe`, a Windows path):
+
+```bash
+python -m venv .env
+.env/Scripts/python.exe -m pip install torch opencv-python numpy pycolmap   # install torch with the CUDA version that matches your GPU
+```
+
+## 3. How the training data is obtained
+
+NeRF cannot be trained from images alone. Every image needs its **camera pose** (position + orientation) and the camera intrinsics (focal length). With them, `get_rays` ([nerf/data.py](nerf/data.py)) builds one ray per pixel, and training compares the color the network predicts along each ray with the real pixel color. Where the poses come from depends on the data:
+
+| Data | Source of the poses | Command |
+|---|---|---|
+| **Synthetic Blender dataset** (lego, chair, ship... from the [original NeRF repo](https://github.com/bmild/nerf)) | Already provided by Blender in `transforms_*.json`. COLMAP is **not** needed | `nerf/import_blender.py` |
+| **Your own video or photos** | Unknown, so they are estimated with **COLMAP** (structure from motion), the same step the original NeRF repo delegates to `imgs2poses.py` from [LLFF](https://github.com/fyusion/llff) | `nerf/prepare_data.py` |
+
+COLMAP estimates, for every frame, the camera position, orientation and lens parameters (focal length, principal point, distortion) using only the images: it finds points that repeat across frames and solves where each camera must have been. As a by-product it produces a sparse 3D point cloud, which `prepare_data.py` uses to center and scale the object.
+
+Both paths end in the same `data/<scene>/transforms.json` (one camera-to-world matrix per frame, in the OpenGL convention: X right, Y up, Z backward), so `train.py` does not care where the poses came from. `prepare_data.py` additionally centers the object, scales it into the `[-1, 1]^3` cube and removes lens distortion from the images.
+
+Reference: [NeRF paper](https://arxiv.org/abs/2003.08934) · [original code](https://github.com/bmild/nerf).
+
+## 4. Train
+
+One folder per scene: `data/<SCENE>/`.
+
+```bash
+# a) video -> frames -> COLMAP -> data/mug/transforms.json
+make prepare SCENE=mug VIDEO=src/videos/mug.mp4
+#    (frames are re-extracted on every run; use --skip_colmap in nerf/prepare_data.py only to reuse the previous ones)
+
+# b) train -> data/mug/nerf.pt (a checkpoint is saved every 1000 iterations)
+make train SCENE=mug ITERS=10000
+```
+
+Without `make`:
+
+```bash
+.env/python.exe nerf/prepare_data.py --video src/videos/mug.mp4 --out data/mug
+.env/python.exe nerf/train.py --data data/mug --out data/mug/nerf.pt --iters 10000
+```
+
+Synthetic Blender dataset (lego, chair...):
+
+```bash
+.env/python.exe nerf/import_blender.py --src C:/path/to/nerf_synthetic/lego --out data/lego
+.env/python.exe nerf/train.py --data data/lego --out data/lego/nerf.pt
+```
+
+Hash encoding check (optional): `.env/python.exe nerf/test_hash.py`
+
+## 5. View the result
+
+**OpenGL viewer + server** (two terminals; the order does not matter, the viewer retries every 2 s):
+
+```bash
+# Terminal 1 (Windows, with GPU): serves ALL scenes data/*/nerf.pt over TCP, port 5555
+make server
+
+# Terminal 2: start the X server (config.xlaunch) and then
+make run        # builds the Docker image the first time, compiles the viewer and opens the window
+```
+
+- In the window, the **Scene** combo switches between the trained scenes.
+- Controls: left = orbit · right/middle = pan · wheel = zoom · WASD/QE = move · Esc = quit.
+- If no server is found, a test scene (sphere and floor) is shown.
+- Useful variables: `make server NERF_PORT=6000`, `make run NERF_HOST=<ip> NERF_PORT=6000`.
+- The server listens on `0.0.0.0` (needed for Docker) and has no authentication. Use it on a trusted network, or run `nerf/server.py` without `--host` so it only listens on `127.0.0.1`.
+
+**OpenCV viewer** (no Docker) and orbit video:
+
+```bash
+make viewer-cv SCENE=mug      # interactive window
+make video SCENE=mug          # writes data/mug/orbit.mp4
+```
+
+## Make targets
+
+`prepare` · `train` · `server` · `run` · `build` · `bash` (shell in the container) · `clean` · `video` · `viewer-cv`
+
+## Project layout
+
+```text
+nerf/prepare_data.py   video -> frames -> COLMAP -> transforms.json
+nerf/import_blender.py Blender synthetic dataset -> transforms.json
+nerf/data.py           dataset loading and ray generation
+nerf/model.py          NeRF model (hash grid + MLPs + volume rendering)
+nerf/train.py          training
+nerf/render.py         image rendering from a trained model
+nerf/server.py         TCP render server used by the OpenGL viewer
+nerf/viewer_cv.py      OpenCV viewer / orbit video
+src/                   OpenGL viewer (C++: main.cpp, Camera.h, RemoteClient.h, Renderer.h)
+```
