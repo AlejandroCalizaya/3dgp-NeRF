@@ -1,0 +1,14 @@
+*.out
+*.xlaunch
+__pycache__/
+.env/
+data/
+imgui.ini
+
+# third-party libraries: clone them as described in README.md
+glad/
+imgui/
+stb/
+
+# local video sources (large)
+src/videos/*.mp4
